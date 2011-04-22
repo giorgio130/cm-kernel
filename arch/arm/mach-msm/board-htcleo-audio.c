@@ -15,24 +15,15 @@
 
 #include <linux/gpio.h>
 #include <linux/delay.h>
-#if defined(CONFIG_USING_BRAVOS_DSP)
 #include <mach/msm_qdsp6_audio.h>
-#else
-#include <mach/msm_qdsp6_audio_1550.h>
-#endif
 #include <mach/htc_acoustic_qsd.h>
-#include <asm/gpio.h>
-#include <mach/gpio.h>
-#include <mach/htc_headset_mgr.h>
 
 #include "board-htcleo.h"
-#include "devices.h"
-#include "dex_comm.h"
 #include "proc_comm.h"
 #include "pmic.h"
+#include "board-htcleo-tpa2018d1.h"
 
-
-#if 1
+#if 0
 #define D(fmt, args...) printk(KERN_INFO "Audio: "fmt, ##args)
 #else
 #define D(fmt, args...) do {} while (0)
@@ -41,82 +32,41 @@
 static struct mutex mic_lock;
 static struct mutex bt_sco_lock;
 
-#if 1
 
-// LEO
-static struct q6_hw_info q6_audio_hw[Q6_HW_COUNT] =
-{
-    [Q6_HW_HANDSET] =
-	{
-        .min_gain = -2000,
-        .max_gain = 600,
-    },
-    [Q6_HW_HEADSET] =
-	{
-        .min_gain = -2000,
-        .max_gain = 600,
-    },
-    [Q6_HW_SPEAKER] =
-	{
-        .min_gain = -1500,
-        .max_gain = 500,
-    },
-    [Q6_HW_TTY] =
-	{
-        .min_gain = -2000,
-        .max_gain = 600,
-    },
-    [Q6_HW_BT_SCO] =
-	{
-        .min_gain = -1100,
-        .max_gain = 400,
-    },
-    [Q6_HW_BT_A2DP] =
-	{
-        .min_gain = -1100,
-        .max_gain = 400,
-    },
+static struct q6_hw_info q6_audio_hw[Q6_HW_COUNT] = {
+	[Q6_HW_HANDSET] = {
+		.min_gain = -1600,
+		.max_gain = 400,
+	},
+	[Q6_HW_HEADSET] = {
+		.min_gain = -1600,
+		.max_gain = 400,
+	},
+	[Q6_HW_SPEAKER] = {
+		.min_gain = -1100,
+		.max_gain = 400,
+	},
+	[Q6_HW_TTY] = {
+		.min_gain = -1600,
+		.max_gain = 400,
+	},
+	[Q6_HW_BT_SCO] = {
+		.min_gain = -1600,
+		.max_gain = 400,
+	},
+	[Q6_HW_BT_A2DP] = {
+		.min_gain = -1600,
+		.max_gain = 400,
+	},
 };
 
-#else
-
-// old desire one
-static struct q6_hw_info q6_audio_hw[Q6_HW_COUNT] = 
-{
-    [Q6_HW_HANDSET] = {
-        .min_gain = -2000,
-        .max_gain = 0,
-    },
-    [Q6_HW_HEADSET] = {
-        .min_gain = -2000,
-        .max_gain = 0,
-    },
-    [Q6_HW_SPEAKER] = {
-        .min_gain = -1500,
-        .max_gain = 0,
-    },
-    [Q6_HW_TTY] = {
-        .min_gain = -2000,
-        .max_gain = 0,
-    },
-    [Q6_HW_BT_SCO] = {
-        .min_gain = -2000,
-        .max_gain = 0,
-    },
-    [Q6_HW_BT_A2DP] = {
-        .min_gain = -2000,
-        .max_gain = 0,
-    },
-};
-
-#endif
 
 void htcleo_headset_enable(int en)
 {
-    D("%s %d\n", __func__, en);
-    /* enable audio amp */
-    if (en) mdelay(60);
-    gpio_set_value(HTCLEO_AUD_JACKHP_EN, !!en);
+	D("%s %d\n", __func__, en);
+	/* enable audio amp */
+	if (en) mdelay(15);
+	gpio_set_value(BRAVO_AUD_JACKHP_EN, !!en);
 }
 
 void htcleo_speaker_enable(int en)
@@ -189,44 +139,46 @@ void htcleo_receiver_enable(int en)
  //   }
 }
            
-static uint32_t bt_sco_enable[] = 
-{
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_OUT, 1, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_IN, 1, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA),
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_SYNC, 2, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA),
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_CLK, 2, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA)
+static uint32_t bt_sco_enable[] = {
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_OUT, 1, GPIO_OUTPUT,
+			GPIO_NO_PULL, GPIO_2MA),
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_IN, 1, GPIO_INPUT,
+			GPIO_NO_PULL, GPIO_2MA),
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_SYNC, 2, GPIO_INPUT,
+			GPIO_NO_PULL, GPIO_2MA),
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_CLK, 2, GPIO_INPUT,
+			GPIO_NO_PULL, GPIO_2MA),
 };
 
-static uint32_t bt_sco_disable[] = 
-{
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_OUT, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_IN, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA),
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_SYNC, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA),
-    PCOM_GPIO_CFG(HTCLEO_BT_PCM_CLK, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA)
+static uint32_t bt_sco_disable[] = {
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_OUT, 0, GPIO_OUTPUT,
+			GPIO_NO_PULL, GPIO_2MA),
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_IN, 0, GPIO_INPUT,
+			GPIO_NO_PULL, GPIO_2MA),
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_SYNC, 0, GPIO_INPUT,
+			GPIO_NO_PULL, GPIO_2MA),
+	PCOM_GPIO_CFG(BRAVO_BT_PCM_CLK, 0, GPIO_INPUT,
+			GPIO_NO_PULL, GPIO_2MA),
 };
 
-void htcleo_bt_sco_enable(int en)
+void bravo_bt_sco_enable(int en)
 {
-    static int bt_sco_refcount;
-    D("%s %d\n", __func__, en);
+	static int bt_sco_refcount;
+	D("%s %d\n", __func__, en);
 
-    mutex_lock(&bt_sco_lock);
-    if (en) 
-    {
-        if (++bt_sco_refcount == 1)
-        {
-            config_gpio_table(bt_sco_enable, ARRAY_SIZE(bt_sco_enable));
-        }        
-    } 
-    else 
-    {
-        if (--bt_sco_refcount == 0) 
-        {
-            config_gpio_table(bt_sco_disable, ARRAY_SIZE(bt_sco_disable));
-            gpio_set_value(HTCLEO_BT_PCM_OUT, 0);
-        }
-    }
-    mutex_unlock(&bt_sco_lock);
+	mutex_lock(&bt_sco_lock);
+	if (en) {
+		if (++bt_sco_refcount == 1)
+			config_gpio_table(bt_sco_enable,
+					ARRAY_SIZE(bt_sco_enable));
+	} else {
+		if (--bt_sco_refcount == 0) {
+			config_gpio_table(bt_sco_disable,
+					ARRAY_SIZE(bt_sco_disable));
+			gpio_set_value(BRAVO_BT_PCM_OUT, 0);
+		}
+	}
+	mutex_unlock(&bt_sco_lock);
 }
 
 void htcleo_mic_enable(int en)
@@ -311,16 +263,15 @@ static struct qsd_acoustic_ops acoustic =
     .enable_mic_bias = htcleo_mic_enable,
 };
 
-static struct q6audio_analog_ops ops = 
-{
-    .init = htcleo_analog_init,
-    .speaker_enable = htcleo_speaker_enable,
-    .headset_enable = htcleo_headset_enable,
-    .receiver_enable = htcleo_receiver_enable,
-    .bt_sco_enable = htcleo_bt_sco_enable,
-    .int_mic_enable = htcleo_mic_enable,
-    .ext_mic_enable = htcleo_mic_enable,
-    .get_rx_vol = htcleo_get_rx_vol,
+static struct q6audio_analog_ops ops = {
+	.init = bravo_analog_init,
+	.speaker_enable = bravo_speaker_enable,
+	.headset_enable = bravo_headset_enable,
+	.receiver_enable = bravo_receiver_enable,
+	.bt_sco_enable = bravo_bt_sco_enable,
+	.int_mic_enable = bravo_mic_enable,
+	.ext_mic_enable = bravo_mic_enable,
+	.get_rx_vol = bravo_get_rx_vol,
 };
 
 static void hs_mic_register(void)
