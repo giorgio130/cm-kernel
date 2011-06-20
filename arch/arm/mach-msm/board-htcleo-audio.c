@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ *mo
  */
 
 #include <linux/gpio.h>
@@ -66,7 +66,7 @@ void htcleo_headset_enable(int en)
 	D("%s %d\n", __func__, en);
 	/* enable audio amp */
 	if (en) mdelay(15);
-	gpio_set_value(BRAVO_AUD_JACKHP_EN, !!en);
+	gpio_set_value(HTCLEO_AUD_JACKHP_EN, !!en);
 }
 
 void htcleo_speaker_enable(int en)
@@ -140,28 +140,28 @@ void htcleo_receiver_enable(int en)
 }
            
 static uint32_t bt_sco_enable[] = {
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_OUT, 1, GPIO_OUTPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_OUT, 1, GPIO_OUTPUT,
 			GPIO_NO_PULL, GPIO_2MA),
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_IN, 1, GPIO_INPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_IN, 1, GPIO_INPUT,
 			GPIO_NO_PULL, GPIO_2MA),
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_SYNC, 2, GPIO_INPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_SYNC, 2, GPIO_INPUT,
 			GPIO_NO_PULL, GPIO_2MA),
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_CLK, 2, GPIO_INPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_CLK, 2, GPIO_INPUT,
 			GPIO_NO_PULL, GPIO_2MA),
 };
 
 static uint32_t bt_sco_disable[] = {
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_OUT, 0, GPIO_OUTPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_OUT, 0, GPIO_OUTPUT,
 			GPIO_NO_PULL, GPIO_2MA),
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_IN, 0, GPIO_INPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_IN, 0, GPIO_INPUT,
 			GPIO_NO_PULL, GPIO_2MA),
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_SYNC, 0, GPIO_INPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_SYNC, 0, GPIO_INPUT,
 			GPIO_NO_PULL, GPIO_2MA),
-	PCOM_GPIO_CFG(BRAVO_BT_PCM_CLK, 0, GPIO_INPUT,
+	PCOM_GPIO_CFG(HTCLEO_BT_PCM_CLK, 0, GPIO_INPUT,
 			GPIO_NO_PULL, GPIO_2MA),
 };
 
-void bravo_bt_sco_enable(int en)
+void htcleo_bt_sco_enable(int en)
 {
 	static int bt_sco_refcount;
 	D("%s %d\n", __func__, en);
@@ -175,7 +175,7 @@ void bravo_bt_sco_enable(int en)
 		if (--bt_sco_refcount == 0) {
 			config_gpio_table(bt_sco_disable,
 					ARRAY_SIZE(bt_sco_disable));
-			gpio_set_value(BRAVO_BT_PCM_OUT, 0);
+			gpio_set_value(HTCLEO_BT_PCM_OUT, 0);
 		}
 	}
 	mutex_unlock(&bt_sco_lock);
@@ -264,14 +264,14 @@ static struct qsd_acoustic_ops acoustic =
 };
 
 static struct q6audio_analog_ops ops = {
-	.init = bravo_analog_init,
-	.speaker_enable = bravo_speaker_enable,
-	.headset_enable = bravo_headset_enable,
-	.receiver_enable = bravo_receiver_enable,
-	.bt_sco_enable = bravo_bt_sco_enable,
-	.int_mic_enable = bravo_mic_enable,
-	.ext_mic_enable = bravo_mic_enable,
-	.get_rx_vol = bravo_get_rx_vol,
+	.init = htcleo_analog_init,
+	.speaker_enable = htcleo_speaker_enable,
+	.headset_enable = htcleo_headset_enable,
+	.receiver_enable = htcleo_receiver_enable,
+	.bt_sco_enable = htcleo_bt_sco_enable,
+	.int_mic_enable = htcleo_mic_enable,
+	.ext_mic_enable = htcleo_mic_enable,
+	.get_rx_vol = htcleo_get_rx_vol,
 };
 
 static void hs_mic_register(void)
