@@ -77,7 +77,7 @@ static struct resource htcleo_wifi_resources[] = {
 		.name		= "bcm4329_wlan_irq",
 		.start		= MSM_GPIO_TO_INT(HTCLEO_GPIO_WIFI_IRQ),
 		.end		= MSM_GPIO_TO_INT(HTCLEO_GPIO_WIFI_IRQ),
-		.flags          = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
+		.flags          = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE,
 	},
 };
 
@@ -143,4 +143,4 @@ static int __init htcleo_wifi_init(void)
         return ret;
 }
 
-device_initcall(htcleo_wifi_init);
+late_initcall(htcleo_wifi_init);

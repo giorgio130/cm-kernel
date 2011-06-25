@@ -33,7 +33,6 @@
 #include <linux/ds2746_battery.h>
 #include <../../../drivers/staging/android/timed_gpio.h>
 #include <../../../drivers/w1/w1.h>
-#include <../../../drivers/staging/android/timed_gpio.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -57,6 +56,8 @@
 #include "board-htcleo.h"
 #include "devices.h"
 #include "proc_comm.h"
+#include "board-htcleo-tpa2018d1.h"
+#include "board-htcleo-smb329.h"
 #include "dex_comm.h"
 
 static uint debug_uart;

@@ -26,16 +26,13 @@
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <asm/mach-types.h>
-#include <asm/mach/mmc.h>
+#include <mach/mmc.h>
 
 #include <mach/vreg.h>
-#include <mach/gpio.h>
 
 #include "board-htcleo.h"
 #include "devices.h"
 #include "proc_comm.h"
-#include "pmic_global.h"
-#include "pmic.h"
 
 #undef HTCLEO_DEBUG_MMC
 
@@ -48,8 +45,7 @@ static int __init htcleo_disablesdcard_setup(char *str)
 
 __setup("board_htcleo.disable_sdcard=", htcleo_disablesdcard_setup);
 
-static uint32_t  sdcard_on_gpio_table[] =
-{
+static uint32_t  sdcard_on_gpio_table[] = {
 	PCOM_GPIO_CFG(62, 1, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_8MA), /* CLK */
 	PCOM_GPIO_CFG(63, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_8MA), /* CMD */
 	PCOM_GPIO_CFG(64, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_4MA), /* DAT3 */
@@ -58,8 +54,7 @@ static uint32_t  sdcard_on_gpio_table[] =
 	PCOM_GPIO_CFG(67, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_4MA), /* DAT0 */
 };
 
-static uint32_t  sdcard_off_gpio_table[] =
-{
+static uint32_t  sdcard_off_gpio_table[] = {
 	PCOM_GPIO_CFG(62, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA), /* CLK */
 	PCOM_GPIO_CFG(63, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA), /* CMD */
 	PCOM_GPIO_CFG(64, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA), /* DAT3 */
@@ -68,10 +63,7 @@ static uint32_t  sdcard_off_gpio_table[] =
 	PCOM_GPIO_CFG(67, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA), /* DAT0 */
 };
 
-static enum vreg_id	sdslot_vreg;
-static enum vreg_id	wlan_vreg_1;
-static enum vreg_id	wlan_vreg_2;
-static enum vreg_id	wlan_vreg_3;
+static struct vreg	*sdslot_vreg;
 static uint32_t		sdslot_vdd = 0xffffffff;
 static uint32_t		sdslot_vreg_enabled;
 
@@ -103,29 +95,27 @@ static uint32_t htcleo_sdslot_switchvdd(struct device *dev, unsigned int vdd)
 
 	sdslot_vdd = vdd;
 
-	printk("@@@ SD power %d @@@\n", vdd);
-
-	if (vdd == 0) 
-	{
-		config_gpio_table(sdcard_off_gpio_table,ARRAY_SIZE(sdcard_off_gpio_table));             
-		pmic_glb_set_vreg(0, sdslot_vreg);
+	if (vdd == 0) {
+		config_gpio_table(sdcard_off_gpio_table,
+				  ARRAY_SIZE(sdcard_off_gpio_table));
+		vreg_disable(sdslot_vreg);
 		sdslot_vreg_enabled = 0;
 		return 0;
 	}
 
-	if (!sdslot_vreg_enabled) 
-	{
-		pmic_glb_set_vreg(1, sdslot_vreg);
+	if (!sdslot_vreg_enabled) {
+		ret = vreg_enable(sdslot_vreg);
 		if (ret)
 			pr_err("%s: Error enabling vreg (%d)\n", __func__, ret);
-		config_gpio_table(sdcard_on_gpio_table, ARRAY_SIZE(sdcard_on_gpio_table));
+		config_gpio_table(sdcard_on_gpio_table,
+				  ARRAY_SIZE(sdcard_on_gpio_table));
 		sdslot_vreg_enabled = 1;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(mmc_vdd_table); i++) {
 		if (mmc_vdd_table[i].mask != (1 << vdd))
 			continue;
-		ret = pmic_glb_vreg_set_level(sdslot_vreg, mmc_vdd_table[i].level);
+		ret = vreg_set_level(sdslot_vreg, mmc_vdd_table[i].level);
 		if (ret)
 			pr_err("%s: Error setting level (%d)\n", __func__, ret);
 		return 0;
@@ -135,9 +125,10 @@ static uint32_t htcleo_sdslot_switchvdd(struct device *dev, unsigned int vdd)
 	return 0;
 }
 
+
 static unsigned int htcleo_sdslot_status(struct device *dev)
 {
-	return !gpio_get_value(HTCLEO_GPIO_SD_STATUS);
+	return !gpio_get_value(HTCLEO_GPIO_SDMC_CD_N);;
 }
 
 #define HTCLEO_MMC_VDD	(MMC_VDD_165_195 | MMC_VDD_20_21 | \
@@ -147,19 +138,17 @@ static unsigned int htcleo_sdslot_status(struct device *dev)
 				 MMC_VDD_27_28 | MMC_VDD_28_29 | \
 				 MMC_VDD_29_30)
 
-static unsigned int htcleo_sdslot_type = MMC_TYPE_SD;
+int htcleo_microp_sdslot_status_register(void (*cb)(int, void *), void *);
+unsigned int htcleo_microp_sdslot_status(struct device *);
 
-static struct mmc_platform_data htcleo_sdslot_data =
-{
+static struct msm_mmc_platform_data htcleo_sdslot_data = {
 	.ocr_mask		= HTCLEO_MMC_VDD,
-	.status			= htcleo_sdslot_status,
-	.register_status_notify	= NULL,
+	.status			= htcleo_microp_sdslot_status,
+	.register_status_notify	= htcleo_microp_sdslot_status_register,
 	.translate_vdd		= htcleo_sdslot_switchvdd,
-	.slot_type		= &htcleo_sdslot_type,
 };
 
-static uint32_t wifi_on_gpio_table[] =
-{
+static uint32_t wifi_on_gpio_table[] = {
 	PCOM_GPIO_CFG(51, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_4MA), /* DAT3 */
 	PCOM_GPIO_CFG(52, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_4MA), /* DAT2 */
 	PCOM_GPIO_CFG(53, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_4MA), /* DAT1 */
@@ -169,8 +158,7 @@ static uint32_t wifi_on_gpio_table[] =
 	PCOM_GPIO_CFG(152, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_4MA),  /* WLAN IRQ */
 };
 
-static uint32_t wifi_off_gpio_table[] =
-{
+static uint32_t wifi_off_gpio_table[] = {
 	PCOM_GPIO_CFG(51, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA), /* DAT3 */
 	PCOM_GPIO_CFG(52, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA), /* DAT2 */
 	PCOM_GPIO_CFG(53, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA), /* DAT1 */
@@ -214,8 +202,9 @@ static unsigned int htcleo_wifi_status(struct device *dev)
 	return htcleo_wifi_cd;
 }
 
-static struct mmc_platform_data htcleo_wifi_data = {
+static struct msm_mmc_platform_data htcleo_wifi_data = {
 	.ocr_mask		= MMC_VDD_28_29,
+	.built_in		= 1,
 	.status			= htcleo_wifi_status,
 	.register_status_notify	= htcleo_wifi_status_register,
 	.embedded_sdio		= &htcleo_wifi_emb_data,
@@ -239,17 +228,17 @@ int htcleo_wifi_power(int on)
 	printk("%s: %d\n", __func__, on);
 
 	if (on) {
-		config_gpio_table(wifi_on_gpio_table,ARRAY_SIZE(wifi_on_gpio_table));
+		config_gpio_table(wifi_on_gpio_table,
+				  ARRAY_SIZE(wifi_on_gpio_table));
 		mdelay(50);
 	} else {
-		config_gpio_table(wifi_off_gpio_table, ARRAY_SIZE(wifi_off_gpio_table));
-		mdelay(100);
+		config_gpio_table(wifi_off_gpio_table,
+				  ARRAY_SIZE(wifi_off_gpio_table));
 	}
-	pmic_glb_set_vreg(on, wlan_vreg_3);
-	
+
 	mdelay(100);
 	gpio_set_value(HTCLEO_GPIO_WIFI_SHUTDOWN_N, on); /* WIFI_SHUTDOWN */
-	mdelay(100);
+	mdelay(200);
 
 	htcleo_wifi_power_state = on;
 	return 0;
@@ -264,19 +253,16 @@ int htcleo_wifi_reset(int on)
 	return 0;
 }
 
-int msm_add_sdcc(unsigned int controller, struct mmc_platform_data *plat,
-		 unsigned int stat_irq, unsigned long stat_irq_flags);
 
-int __init htcleo_init_mmc(unsigned debug_uart)
+int __init htcleo_init_mmc(unsigned int sys_rev, unsigned debug_uart)
 {
 	uint32_t id;
 
 	printk("%s()+\n", __func__);
 
-	/* initial WIFI_SHUTDOWN# */	
+	/* initial WIFI_SHUTDOWN# */
 	id = PCOM_GPIO_CFG(HTCLEO_GPIO_WIFI_SHUTDOWN_N, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA),
 	msm_proc_comm(PCOM_RPC_GPIO_TLMM_CONFIG_EX, &id, 0);
-	gpio_set_value(HTCLEO_GPIO_WIFI_SHUTDOWN_N, 0);
 
 	msm_add_sdcc(1, &htcleo_wifi_data, 0, 0);
 
@@ -291,15 +277,25 @@ int __init htcleo_init_mmc(unsigned debug_uart)
 
 	sdslot_vreg_enabled = 0;
 
-	sdslot_vreg = PM_VREG_GP6_ID;
-	wlan_vreg_1 = PM_VREG_WLAN_ID;
-	wlan_vreg_2 = PM_VREG_MSME1_ID;
-	wlan_vreg_3 = PM_VREG_RFTX_ID;
+htcleo_sdslot_data.translate_vdd = htcleo_cdma_sdslot_switchvdd;
+	} else {
+		/* in UMTS version, sdslot is supplied by pmic */
+		sdslot_vreg = vreg_get(0, "gp6");
+		if (IS_ERR(sdslot_vreg))
+			return PTR_ERR(sdslot_vreg);
+	}
 
-	set_irq_wake(MSM_GPIO_TO_INT(HTCLEO_GPIO_SD_STATUS), 1);
-	msm_add_sdcc(2, &htcleo_sdslot_data,
-		      MSM_GPIO_TO_INT(HTCLEO_GPIO_SD_STATUS),
-		      IORESOURCE_IRQ_LOWEDGE | IORESOURCE_IRQ_HIGHEDGE);
+//	if (system_rev > 0)
+		htcleo_sdslot_data.status = htcleo_sdslot_status;
+		msm_add_sdcc(2, &htcleo_sdslot_data, 0, 0);
+//	else {
+//		htcleo_sdslot_data.status = htcleo_sdslot_status;
+//		htcleo_sdslot_data.register_status_notify = NULL;
+//		set_irq_wake(MSM_GPIO_TO_INT(HTCLEO_GPIO_SDMC_CD_N), 1);
+//		msm_add_sdcc(2, &htcleo_sdslot_data,
+//			     MSM_GPIO_TO_INT(HTCLEO_GPIO_SDMC_CD_N),
+//			     IORESOURCE_IRQ_LOWEDGE | IORESOURCE_IRQ_HIGHEDGE);
+//	}
 
 done:
 	printk("%s()-\n", __func__);
@@ -391,7 +387,7 @@ static int __init htcleommc_dbg_init(void)
 {
 	struct dentry *dent;
 
-	if (!machine_is_htcleo() && !machine_is_htcleo())
+	if (!machine_is_htcleo() && !machine_is_htcleoc())
 		return 0;
 
 	dent = debugfs_create_dir("htcleo_mmc_dbg", 0);
