@@ -478,7 +478,6 @@ static void htcleo_usb_hw_reset(bool enable)
 		       ret);
 }
 
-
 static struct msm_hsusb_platform_data msm_hsusb_pdata = {
 	.phy_init_seq		= htcleo_phy_init_seq,
 	.phy_reset		= htcleo_usb_phy_reset,
@@ -589,7 +588,6 @@ static struct platform_device rndis_device = {
 	},
 };
 #endif
-
 
 static struct android_usb_platform_data android_usb_pdata = {
 	.vendor_id	= 0x0bb4,
@@ -796,6 +794,20 @@ static int capella_cm3602_power(int pwr_device, uint8_t enable)
 
 	mutex_unlock(&capella_cm3602_lock);
 	return ret;
+};
+
+static struct lightsensor_platform_data lightsensor_data = {
+	.config = &microp_functions[0],
+	.irq = MSM_uP_TO_INT(9),
+};
+
+static struct platform_device microp_devices[] = {
+	{
+		.name = "lightsensor_microp",
+		.dev = {
+			.platform_data = &lightsensor_data,
+		},
+	},
 };
 
 static struct capella_cm3602_platform_data capella_cm3602_pdata = {

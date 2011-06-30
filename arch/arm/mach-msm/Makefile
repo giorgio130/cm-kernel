@@ -143,6 +143,23 @@ obj-$(CONFIG_MACH_BRAVO) += board-bravo-microp.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-tpa2018d1.o
 obj-$(CONFIG_MACH_BRAVO) += board-bravo-smb329.o
 
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo.o board-htcleo-panel.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-keypad.o board-htcleo-mmc.o board-htcleo-ts.o ieee754-df.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-wifi.o board-htcleo-audio.o board-htcleo-ls.o
+obj-$(CONFIG_HTCLEO_BACKLIGHT_LED) += board-htcleo-bl-led.o
+obj-$(CONFIG_HTCLEO_BTN_BACKLIGHT_MANAGER) += board-htcleo-btn_backlight-manager.o
+obj-$(CONFIG_MACH_HTCLEO) += msm_vibrator.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-microp.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-tpa2018d1.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-smb329.o
+
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-wifi.o board-htcleo-audio.o
+obj-$(CONFIG_MACH_HTCLEO) += msm_vibrator.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-microp.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-tpa2018d1.o
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo-smb329.o
+
 obj-$(CONFIG_MACH_BRAVOC) += board-bravo.o board-bravo-panel.o
 obj-$(CONFIG_MACH_BRAVOC) += board-bravo-keypad.o board-bravo-mmc.o
 obj-$(CONFIG_MACH_BRAVOC) += board-bravo-rfkill.o htc_wifi_nvs.o htc_awb_cal.o

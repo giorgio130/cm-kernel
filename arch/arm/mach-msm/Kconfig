@@ -311,6 +311,43 @@ config MACH_INCREDIBLE
 	bool "Incredible"
 	help
 	  Select this to support the Incredible device
+config MACH_HTCLEO
+	depends on ARCH_QSD8X50
+	default n
+	bool "Htcleo"
+	help
+	  Select this to support the HD2 device
+
+config HTCLEO_BLINK_AT_BOOT
+       depends on MACH_HTCLEO
+       default n
+       bool "Blink flash at boot"
+       help
+         Blink flash led during hardware init
+
+config HTCLEO_BTN_BACKLIGHT_MANAGER
+      depends on MACH_HTCLEO
+      default n
+      bool "Use button backlight manager"
+      help
+	Use kernel button backlight manager to turn on/off backlight
+
+choice
+	prompt "HTCLEO Backlight API type"
+	default HTCLEO_BACKLIGHT_LED
+
+	config HTCLEO_BACKLIGHT_LED
+		bool "Backlight control via LED API"
+	help
+		Needed by Google Android
+
+	config HTCLEO_BACKLIGHT
+	select BACKLIGHT_LCD_SUPPORT
+		bool "Standard backlight API"
+	help
+		Works in standard Linux distros. Tested in GNOME.
+endchoice
+
 
 config MACH_INCREDIBLEC
 	depends on ARCH_QSD8X50
