@@ -277,17 +277,14 @@ int __init htcleo_init_mmc(unsigned int sys_rev, unsigned debug_uart)
 
 	sdslot_vreg_enabled = 0;
 
-htcleo_sdslot_data.translate_vdd = htcleo_cdma_sdslot_switchvdd;
-	} else {
-		/* in UMTS version, sdslot is supplied by pmic */
-		sdslot_vreg = vreg_get(0, "gp6");
-		if (IS_ERR(sdslot_vreg))
-			return PTR_ERR(sdslot_vreg);
-	}
+	/* in UMTS version, sdslot is supplied by pmic */
+	sdslot_vreg = vreg_get(0, "gp6");
+	if (IS_ERR(sdslot_vreg))
+		return PTR_ERR(sdslot_vreg);
 
 //	if (system_rev > 0)
-		htcleo_sdslot_data.status = htcleo_sdslot_status;
-		msm_add_sdcc(2, &htcleo_sdslot_data, 0, 0);
+	htcleo_sdslot_data.status = htcleo_sdslot_status;
+	msm_add_sdcc(2, &htcleo_sdslot_data, 0, 0);
 //	else {
 //		htcleo_sdslot_data.status = htcleo_sdslot_status;
 //		htcleo_sdslot_data.register_status_notify = NULL;

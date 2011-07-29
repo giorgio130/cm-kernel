@@ -34,6 +34,17 @@
 #include "board-htcleo.h"
 #include "devices.h"
 
+#define SPI_CONFIG              (0x00000000)
+#define SPI_IO_CONTROL          (0x00000004)
+#define SPI_OPERATIONAL         (0x00000030)
+#define SPI_ERROR_FLAGS_EN      (0x00000038)
+#define SPI_ERROR_FLAGS         (0x00000034)
+#define SPI_OUTPUT_FIFO         (0x00000100)
+
+static void __iomem *spi_base;
+static struct clk *spi_clk ;
+static struct vreg *vreg_lcm_rftx_2v6;
+static struct vreg *vreg_lcm_aux_2v6;
 
 typedef uint16_t UINT;
 
@@ -56,9 +67,64 @@ static struct vreg *vreg_lcd;
 
 #define LCM_DELAY(a)		msleep(a)
 
-extern int qspi_send_9bit(unsigned char id, unsigned data);
-extern int qspi_send_16bit(unsigned char id, unsigned data);
-extern int qspi_send(unsigned char id, unsigned data);
+static int qspi_send(uint32_t id, uint8_t data)
+{
+	uint32_t err;
+
+	/* bit-5: OUTPUT_FIFO_NOT_EMPTY */
+	while (readl(spi_base + SPI_OPERATIONAL) & (1<<5)) {
+		if ((err = readl(spi_base + SPI_ERROR_FLAGS))) {
+			pr_err("%s: ERROR: SPI_ERROR_FLAGS=0x%08x\n", __func__,
+			       err);
+			return -EIO;
+		}
+	}
+	writel((0x7000 | (id << 9) | data) << 16, spi_base + SPI_OUTPUT_FIFO);
+	udelay(100);
+
+	return 0;
+}
+
+static int qspi_send_9bit(uint32_t id, uint8_t data)
+{
+	uint32_t err;
+
+	while (readl(spi_base + SPI_OPERATIONAL) & (1<<5)) {
+		err = readl(spi_base + SPI_ERROR_FLAGS);
+		if (err) {
+			pr_err("%s: ERROR: SPI_ERROR_FLAGS=0x%08x\n", __func__,
+			       err);
+			return -EIO;
+		}
+	}
+	writel(((id << 8) | data) << 23, spi_base + SPI_OUTPUT_FIFO);
+	udelay(100);
+
+	return 0;
+}
+
+
+int qspi_send_16bit(unsigned char id, unsigned data)
+{
+        unsigned err ;
+
+        /* bit-5: OUTPUT_FIFO_NOT_EMPTY */
+	clk_enable(spi_clk);
+        while( readl(spi_base+SPI_OPERATIONAL) & (1<<5) )
+        {
+                if( (err=readl(spi_base+SPI_ERROR_FLAGS)) )
+                {
+                        printk("\rERROR:  SPI_ERROR_FLAGS=%d\r", err);
+                        return -1;
+                }
+        }
+
+	writel( (id<<13 | data)<<16, spi_base+SPI_OUTPUT_FIFO );/*AUO*/
+        udelay(1000);
+	clk_disable(spi_clk);
+
+	return 0;
+}
 
 static DEFINE_MUTEX(panel_lock);
 
