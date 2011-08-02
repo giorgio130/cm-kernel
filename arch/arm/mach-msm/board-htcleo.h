@@ -40,7 +40,7 @@
 #define MSM_PMEM_MDP_SIZE	0x02000000
 
 #define MSM_PMEM_ADSP_BASE	0x3D700000
-#define MSM_PMEM_ADSP_SIZE	0x02900000
+//#define MSM_PMEM_ADSP_SIZE	0x02900000  why are there 2 of them??
 
 
 /* Begin EBI region */
@@ -78,6 +78,8 @@
 #define HTCLEO_GPIO_WIFI_SHUTDOWN_N		127
 #define HTCLEO_GPIO_WIFI_IRQ			152
 
+
+#define HTCLEO_GPIO_DS2482_SLP_N                87
 #define HTCLEO_GPIO_VIBRATOR_ON         	100
 
 /* Flashlight */
@@ -88,6 +90,8 @@
 
 #define HTCLEO_AUD_JACKHP_EN  			157
 #define HTCLEO_AUD_2V5_EN     			158
+
+#define HTCLEO_GPIO_AUD_SPK_AMP_EN	        102  //random number!!
 #define HTCLEO_BT_PCM_OUT     			68
 #define HTCLEO_BT_PCM_IN      			69
 #define HTCLEO_BT_PCM_SYNC    			70
@@ -105,6 +109,9 @@
 #define HTCLEO_GPIO_KP_MPIN1     		41
 #define HTCLEO_GPIO_KP_MPIN2     		40
 #define HTCLEO_GPIO_KP_LED	 		48
+
+/* 3.5mm remote control key interrupt shutdown signal */
+#define HTCLEO_GPIO_35MM_KEY_INT_SHUTDOWN	19 //random as well
 
 /* Bluetooth */
 #define HTCLEO_GPIO_BT_UART1_RTS			43
@@ -125,6 +132,7 @@
 
 /* Battery */
 #define HTCLEO_GPIO_BATTERY_CHARGER_ENABLE	22
+#define HTCLEO_GPIO_BATTERY_CHARGER_EN  	22
 #define HTCLEO_GPIO_BATTERY_CHARGER_CURRENT	16
 #define HTCLEO_GPIO_BATTERY_OVER_CHG		147
 #define HTCLEO_GPIO_POWER_USB     		109
@@ -208,5 +216,7 @@ struct microp_led_platform_data {
 int htcleo_pm_set_vreg(int enable, unsigned id);
 int __init htcleo_init_panel(void);
 int htcleo_is_nand_boot(void);
+
+#define MSM_GPIOCFG2_BASE     IOMEM(0xF9005000)
 
 #endif /* __ARCH_ARM_MACH_MSM_BOARD_HTCLEO_H */
