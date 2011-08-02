@@ -28,7 +28,6 @@
 #include <linux/synaptics_i2c_rmi.h>
 #include <linux/capella_cm3602_htc.h>
 #include <linux/akm8973.h>
-#include <linux/bma150.h>
 #include <linux/regulator/machine.h>
 #include <linux/ds2784_battery.h>
 #include <linux/ds2746_battery.h>
@@ -38,15 +37,13 @@
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 #include <asm/setup.h>
-#include <mach/htc_headset_mgr.h>
-#include <mach/htc_headset_gpio.h>
-#include <mach/htc_headset_microp.h>
 #include <mach/board.h>
 #include <mach/hardware.h>
 #include <mach/msm_hsusb.h>
 #include <mach/msm_iomap.h>
 #include <mach/msm_serial_debugger.h>
 #include <mach/system.h>
+#include <mach/msm_iomap.h>
 #include <mach/msm_serial_hs.h>
 #include <mach/bcm_bt_lpm.h>
 #include <mach/msm_smd.h>
@@ -56,17 +53,12 @@
 #endif
 #include <mach/vreg.h>
 #include <mach/board-htcleo-microp-common.h>
-#include <linux/spi/spi.h>
 #include "board-htcleo.h"
 #include "devices.h"
 #include "proc_comm.h"
 #include "board-htcleo-tpa2018d1.h"
 #include "board-htcleo-smb329.h"
-//#include "dex_comm.h"
-
-#ifdef CONFIG_OPTICALJOYSTICK_CRUCIAL
-#include <linux/curcial_oj.h>
-#endif
+#include "dex_comm.h"
 
 static uint debug_uart;
 
@@ -187,10 +179,10 @@ static struct platform_device htc_headset_mgr = {
 
 static struct htc_headset_gpio_platform_data htc_headset_gpio_data = {
 	.hpin_gpio		= HTCLEO_GPIO_HDS_DET,
-//	.mic_detect_gpio	= HTCLEO_GPIO_HDS_MIC,
-//	.microp_channel		= 1,
-	.key_enable_gpio	= 0,
-	.mic_select_gpio	= 0,
+	.mic_detect_gpio	= HTCLEO_GPIO_HDS_MIC,
+	.microp_channel		= 1,
+	.key_enable_gpio	= NULL,
+	.mic_select_gpio	= NULL,
 };
 
 static struct platform_device htc_headset_gpio = {
@@ -240,7 +232,7 @@ static struct microp_led_platform_data microp_leds_data = {
 
 static struct bma150_platform_data htcleo_g_sensor_pdata = {
 	.microp_new_cmd = 0,
-//	.chip_layout = 1,
+	.chip_layout = 1,
 };
 
 static struct platform_device microp_devices[] = {
@@ -272,20 +264,6 @@ static struct platform_device microp_devices[] = {
 	},
 };
 
-
-static int capella_cm3602_power(int pwr_device, uint8_t enable);
-static struct microp_function_config microp_functions[] = {
-	{
-		.name = "light_sensor",
-		.category = MICROP_FUNCTION_LSENSOR,
-		.levels = { 0x000, 0x001, 0x00F, 0x01E, 0x03C, 0x121, 0x190, 0x2BA, 0x35C, 0x3FF },
-		.channel = 6,
-		.int_pin = IRQ_LSENSOR,
-		.golden_adc = 0xC0,
-		.ls_power = capella_cm3602_power,
-	},
-};
-
 static struct microp_i2c_platform_data microp_data = {
 	.num_functions = ARRAY_SIZE(microp_functions),
 	.microp_function = microp_functions,
@@ -293,45 +271,6 @@ static struct microp_i2c_platform_data microp_data = {
 	.microp_devices = microp_devices,
 	.gpio_reset = HTCLEO_GPIO_UP_RESET_N,
 	.spi_devices = SPI_OJ | SPI_GSENSOR,
-};
-
-
-static struct tpa2018d1_platform_data tpa2018_data = {
-	.gpio_tpa2018_spk_en = HTCLEO_GPIO_AUD_SPK_AMP_EN,
-};
-
-
-static int htcleo_ts_power(int on)
-{
-	pr_info("%s: power %d\n", __func__, on);
-
-	if (on) {
-		/* level shifter should be off */
-		gpio_set_value(HTCLEO_GPIO_TP_EN, 1);
-		msleep(120);
-		/* enable touch panel level shift */
-		gpio_set_value(HTCLEO_GPIO_TP_LS_EN, 1);
-		msleep(3);
-	} else {
-		gpio_set_value(HTCLEO_GPIO_TP_LS_EN, 0);
-		gpio_set_value(HTCLEO_GPIO_TP_EN, 0);
-		udelay(50);
-	}
-
-	return 0;
-}
-
-static struct synaptics_i2c_rmi_platform_data htcleo_synaptics_ts_data[] = {
-	{
-		.version = 0x100,
-		.power = htcleo_ts_power,
-		.flags = SYNAPTICS_FLIP_Y | SYNAPTICS_SNAP_TO_INACTIVE_EDGE,
-		.inactive_left = -1 * 0x10000 / 480,
-		.inactive_right = -1 * 0x10000 / 480,
-		.inactive_top = -5 * 0x10000 / 800,
-		.inactive_bottom = -5 * 0x10000 / 800,
-		.sensitivity_adjust = 12,
-	}
 };
 
 static struct i2c_board_info base_i2c_devices[] = {
@@ -373,81 +312,6 @@ static struct i2c_board_info rev_CX_i2c_devices[] = {
 	},
 };
 
-
-static int ds2784_charge(int on, int fast)
-{
-	gpio_direction_output(HTCLEO_GPIO_BATTERY_CHARGER_CURRENT, !!fast);
-	gpio_direction_output(HTCLEO_GPIO_BATTERY_CHARGER_EN, !on);
-	return 0;
-}
-
-static int w1_ds2784_add_slave(struct w1_slave *sl)
-{
-	struct dd {
-		struct platform_device pdev;
-		struct ds2784_platform_data pdata;
-	} *p;
-
-	int rc;
-
-	p = kzalloc(sizeof(struct dd), GFP_KERNEL);
-	if (!p) {
-		pr_err("%s: out of memory\n", __func__);
-		return -ENOMEM;
-	}
-
-	rc = gpio_request(HTCLEO_GPIO_BATTERY_CHARGER_EN, "charger_en");
-	if (rc < 0) {
-		pr_err("%s: gpio_request(%d) failed: %d\n", __func__,
-			HTCLEO_GPIO_BATTERY_CHARGER_EN, rc);
-		kfree(p);
-		return rc;
-	}
-
-	rc = gpio_request(HTCLEO_GPIO_BATTERY_CHARGER_CURRENT, "charger_current");
-	if (rc < 0) {
-		pr_err("%s: gpio_request(%d) failed: %d\n", __func__,
-				HTCLEO_GPIO_BATTERY_CHARGER_CURRENT, rc);
-		gpio_free(HTCLEO_GPIO_BATTERY_CHARGER_EN);
-		kfree(p);
-		return rc;
-	}
-
-	p->pdev.name = "ds2784-battery";
-	p->pdev.id = -1;
-	p->pdev.dev.platform_data = &p->pdata;
-	p->pdata.charge = ds2784_charge;
-	p->pdata.w1_slave = sl;
-
-	platform_device_register(&p->pdev);
-
-	return 0;
-}
-
-static struct w1_family_ops w1_ds2784_fops = {
-	.add_slave = w1_ds2784_add_slave,
-};
-
-static struct w1_family w1_ds2784_family = {
-	.fid = W1_FAMILY_DS2784,
-	.fops = &w1_ds2784_fops,
-};
-
-static int __init ds2784_battery_init(void)
-{
-	return w1_register_family(&w1_ds2784_family);
-}
-#ifdef CONFIG_OPTICALJOYSTICK_CRUCIAL
-static void curcial_oj_shutdown(int enable)
-{
-	uint8_t cmd[3];
-
-	memset(cmd, 0x00, sizeof(uint8_t)*3);
-	cmd[2] = 0x20;
-	// microp firmware(v04) non-shutdown by default
-	microp_i2c_write(0x90, cmd, 3);
-	pr_err("%s\n", __func__);
-}
 #define CURCIAL_OJ_POWER		150
 static int curcial_oj_poweron(int on)
 {
@@ -758,16 +622,22 @@ static uint32_t flashlight_gpio_table[] = {
 };
 
 static uint32_t flashlight_gpio_table_rev_CX[] = {
-	PCOM_GPIO_CFG(HTCLEO_GPIO_FLASHLIGHT_TORCH, 0, GPIO_OUTPUT,
+	PCOM_GPIO_CFG(HTCLEO_CDMA_GPIO_FLASHLIGHT_TORCH, 0, GPIO_OUTPUT,
 						GPIO_NO_PULL, GPIO_2MA),
 	PCOM_GPIO_CFG(HTCLEO_GPIO_FLASHLIGHT_FLASH, 0, GPIO_OUTPUT,
 						GPIO_NO_PULL, GPIO_2MA),
 };
 
-static void config_htcleo_flashlight_gpios(void)
+static int config_htcleo_flashlight_gpios(void)
 {
-	config_gpio_table(flashlight_gpio_table,
-			ARRAY_SIZE(flashlight_gpio_table));
+	if (is_cdma_version(system_rev)) {
+		config_gpio_table(flashlight_gpio_table_rev_CX,
+				ARRAY_SIZE(flashlight_gpio_table_rev_CX));
+	} else {
+		config_gpio_table(flashlight_gpio_table,
+				ARRAY_SIZE(flashlight_gpio_table));
+	}
+	return 0;
 }
 
 static struct flashlight_platform_data htcleo_flashlight_data = {
@@ -931,6 +801,14 @@ static struct lightsensor_platform_data lightsensor_data = {
 	.irq = MSM_uP_TO_INT(9),
 };
 
+static struct platform_device microp_devices[] = {
+	{
+		.name = "lightsensor_microp",
+		.dev = {
+			.platform_data = &lightsensor_data,
+		},
+	},
+};
 
 static struct capella_cm3602_platform_data capella_cm3602_pdata = {
 	.power = capella_cm3602_power,
@@ -988,7 +866,7 @@ static uint32_t bt_gpio_table_rev_CX[] = {
 		      GPIO_PULL_DOWN, GPIO_4MA),
 	PCOM_GPIO_CFG(HTCLEO_GPIO_BT_SHUTDOWN_N, 0, GPIO_OUTPUT,
 		      GPIO_PULL_DOWN, GPIO_4MA),
-	PCOM_GPIO_CFG(HTCLEO_GPIO_BT_WAKE, 0, GPIO_OUTPUT,
+	PCOM_GPIO_CFG(HTCLEO_CDMA_GPIO_BT_WAKE, 0, GPIO_OUTPUT,
 		      GPIO_PULL_DOWN, GPIO_4MA),
 	PCOM_GPIO_CFG(HTCLEO_GPIO_BT_HOST_WAKE, 0, GPIO_INPUT,
 		      GPIO_PULL_DOWN, GPIO_4MA),
@@ -1001,6 +879,8 @@ static uint32_t key_int_shutdown_gpio_table[] = {
 
 static void htcleo_headset_init(void)
 {
+	if (is_cdma_version(system_rev))
+		return;
 	config_gpio_table(key_int_shutdown_gpio_table,
 			ARRAY_SIZE(key_int_shutdown_gpio_table));
 	gpio_set_value(HTCLEO_GPIO_35MM_KEY_INT_SHUTDOWN, 0);
@@ -1280,14 +1160,73 @@ static struct platform_device ram_console_device = {
 	.resource	= ram_console_resources,
 };
 
+///////////////////////////////////////////////////////////////////////
+// LIGHT SENSOR
+///////////////////////////////////////////////////////////////////////
 
+static int capella_cm3602_power(int pwr_device, uint8_t enable);
+static struct microp_function_config microp_functions[] = {
+	{
+		.name = "light_sensor",
+		.category = MICROP_FUNCTION_LSENSOR,
+		.levels = { 0x000, 0x001, 0x00F, 0x01E, 0x03C, 0x121, 0x190, 0x2BA, 0x35C, 0x3FF },
+		.channel = 6,
+		.int_pin = IRQ_LSENSOR,
+		.golden_adc = 0xC0,
+		.ls_power = capella_cm3602_power,
+	},
+};
+
+static struct lightsensor_platform_data lightsensor_data = {
+	.config = &microp_functions[0],
+	.irq = MSM_uP_TO_INT(9),
+};
+
+static struct platform_device microp_devices[] = {
+	{
+		.name = "lightsensor_microp",
+		.dev = {
+			.platform_data = &lightsensor_data,
+		},
+	},
+};
 
 
 ///////////////////////////////////////////////////////////////////////
 // MISC
 ///////////////////////////////////////////////////////////////////////
+static int htcleo_ts_power(int on)
+{
+	pr_info("%s: power %d\n", __func__, on);
 
+	if (on) {
+		/* level shifter should be off */
+		gpio_set_value(HTCLEO_GPIO_TP_EN, 1);
+		msleep(120);
+		/* enable touch panel level shift */
+		gpio_set_value(HTCLEO_GPIO_TP_LS_EN, 1);
+		msleep(3);
+	} else {
+		gpio_set_value(HTCLEO_GPIO_TP_LS_EN, 0);
+		gpio_set_value(HTCLEO_GPIO_TP_EN, 0);
+		udelay(50);
+	}
 
+	return 0;
+}
+
+static struct synaptics_i2c_rmi_platform_data htcleo_synaptics_ts_data[] = {
+	{
+		.version = 0x100,
+		.power = htcleo_ts_power,
+		.flags = SYNAPTICS_FLIP_Y | SYNAPTICS_SNAP_TO_INACTIVE_EDGE,
+		.inactive_left = -1 * 0x10000 / 480,
+		.inactive_right = -1 * 0x10000 / 480,
+		.inactive_top = -5 * 0x10000 / 800,
+		.inactive_bottom = -5 * 0x10000 / 800,
+		.sensitivity_adjust = 12,
+	}
+};
 
 static const struct smd_tty_channel_desc smd_cdma_default_channels[] = {
 	{ .id = 0, .name = "SMD_DS" },
@@ -1305,11 +1244,11 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.gpio_mbat_in = -1,
 	.gpio_mchg_en_n = HTCLEO_GPIO_BATTERY_CHARGER_ENABLE,
 	.gpio_iset = HTCLEO_GPIO_BATTERY_CHARGER_CURRENT,
-//	.gpio_power = HTCLEO_GPIO_POWER_USB,
+	.gpio_power = HTCLEO_GPIO_POWER_USB,
 	.guage_driver = GUAGE_DS2746,
 	.charger = LINEAR_CHARGER,
 	.m2a_cable_detect = 0,
-//	.force_no_rpc = 1,
+	.force_no_rpc = 1,
 	.int_data = {
 		.chg_int = HTCLEO_GPIO_BATTERY_OVER_CHG,
 	},
@@ -1392,7 +1331,7 @@ static struct platform_device *devices[] __initdata =
 	&capella_cm3602,
 	&msm_device_rtc,
 	&ds2746_battery_pdev,
-	&htc_battery_pdev,
+	&htc_battery_pdev,,
 	&msm_camera_sensor_s5k3e2fx,
 };
 ///////////////////////////////////////////////////////////////////////
@@ -1423,7 +1362,7 @@ static struct platform_device htcleo_timed_gpios = {
 ///////////////////////////////////////////////////////////////////////
 // I2C
 ///////////////////////////////////////////////////////////////////////
-/*
+
 static struct msm_i2c_device_platform_data msm_i2c_pdata = {
 	.i2c_clock = 400000,
 	.clock_strength = GPIO_8MA,
@@ -1434,7 +1373,7 @@ static void __init msm_device_i2c_init(void)
 {
 	msm_i2c_gpio_init();
 	msm_device_i2c.dev.platform_data = &msm_i2c_pdata;
-}*/
+}
 ///////////////////////////////////////////////////////////////////////
 // Clocks
 ///////////////////////////////////////////////////////////////////////
@@ -1448,8 +1387,6 @@ static struct msm_acpu_clock_platform_data htcleo_clock_data = {
 //	.wait_for_irq_khz	= 19200,   // TCXO
 };
 
-
-#ifdef CONFIG_PERFLOCK
 static unsigned htcleo_perf_acpu_table[] = {
 	245000000,
 	576000000,
@@ -1460,7 +1397,6 @@ static struct perflock_platform_data htcleo_perflock_data = {
 	.perf_acpu_table = htcleo_perf_acpu_table,
 	.table_size = ARRAY_SIZE(htcleo_perf_acpu_table),
 };
-#endif
 
 ///////////////////////////////////////////////////////////////////////
 // Reset
@@ -1510,7 +1446,7 @@ static void __init htcleo_init(void)
 	msm_serial_debug_init(MSM_UART1_PHYS, INT_UART1,
 			      &msm_device_uart1.dev, 1, MSM_GPIO_TO_INT(139));
 
-//	config_gpio_table(misc_gpio_table, ARRAY_SIZE(misc_gpio_table));
+	config_gpio_table(misc_gpio_table, ARRAY_SIZE(misc_gpio_table));
 
 	config_gpio_table(bt_gpio_table, ARRAY_SIZE(bt_gpio_table));
 
@@ -1541,7 +1477,8 @@ static void __init htcleo_init(void)
 	i2c_register_board_info(0, base_i2c_devices,
 		ARRAY_SIZE(base_i2c_devices));
 
-	if (htcleo_init_mmc(system_rev, debug_uart) != 0)
+	ret = htcleo_init_mmc(system_rev, debug_uart);
+	if (ret != 0)
 		pr_crit("%s: Unable to initialize MMC\n", __func__);
 
 	htcleo_audio_init();
@@ -1554,8 +1491,8 @@ static void __init htcleo_init(void)
 	msm_acpu_clock_init(&htcleo_clock_data);
 
 
+}
 
-//}   what's this??
 
 
 #ifdef CONFIG_SERIAL_MSM_HS
@@ -1566,11 +1503,11 @@ static void __init htcleo_init(void)
 
 	config_gpio_table(bt_gpio_table, ARRAY_SIZE(bt_gpio_table));
 
-//	bt_export_bd_address();
+	bt_export_bd_address();
 
 	htcleo_audio_init();
 
-//	msm_device_i2c_init();
+	msm_device_i2c_init();
 
 	/* set the gpu power rail to manual mode so clk en/dis will not
 	* turn off gpu power, and hang it on resume */
@@ -1588,10 +1525,10 @@ static void __init htcleo_init(void)
 	i2c_register_board_info(0, base_i2c_devices, ARRAY_SIZE(base_i2c_devices));
 
 #ifdef CONFIG_USB_ANDROID
-//	htcleo_add_usb_devices();
+	htcleo_add_usb_devices();
 #endif
 
-//	htcleo_init_mmc(0);
+	htcleo_init_mmc(0);
 	platform_device_register(&htcleo_timed_gpios);
 
 
@@ -1616,7 +1553,7 @@ static void __init htcleo_fixup(struct machine_desc *desc, struct tag *tags,
 {
 	mi->nr_banks = 1;
 	mi->bank[0].start = MSM_EBI1_BANK0_BASE;
-//	mi->bank[0].node = PHYS_TO_NID(MSM_EBI1_BANK0_BASE);
+	mi->bank[0].node = PHYS_TO_NID(MSM_EBI1_BANK0_BASE);
 	mi->bank[0].size = MSM_EBI1_BANK0_SIZE;
 }
 
@@ -1629,7 +1566,7 @@ static void __init htcleo_map_io(void)
 
 
 MACHINE_START(HTCLEO, "htcleo")
-	.boot_params	= (0x11800000 + 0x00000100),
+	.boot_params	= (CONFIG_PHYS_OFFSET + 0x00000100),
 	.fixup		= htcleo_fixup,
 	.map_io		= htcleo_map_io,
 	.init_irq	= msm_init_irq,

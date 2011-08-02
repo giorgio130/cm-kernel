@@ -17,8 +17,7 @@
 #include <linux/delay.h>
 #include <mach/msm_qdsp6_audio.h>
 #include <mach/htc_acoustic_qsd.h>
-#include <mach/htc_headset_mgr.h>
-#include <mach/htc_headset_microp.h>
+
 #include "board-htcleo.h"
 #include "proc_comm.h"
 #include "pmic.h"
@@ -60,7 +59,6 @@ static struct q6_hw_info q6_audio_hw[Q6_HW_COUNT] = {
 		.max_gain = 400,
 	},
 };
-
 
 
 void htcleo_headset_enable(int en)
