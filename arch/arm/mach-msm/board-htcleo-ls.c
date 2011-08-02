@@ -37,7 +37,7 @@ user may be able to adjust time in future
 #include <linux/lightsensor.h>
 #include <linux/earlysuspend.h>
 #include <linux/capella_cm3602_htc.h>
-#include <mach/board-htcleo-microp.h>
+#include <mach/board-htcleo-microp-common.h>
 
 #include "board-htcleo.h"
 struct early_suspend early_suspend;
