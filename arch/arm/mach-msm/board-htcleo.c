@@ -1211,7 +1211,7 @@ static struct platform_device msm_kgsl_device = {
 ///////////////////////////////////////////////////////////////////////
 // Memory
 ///////////////////////////////////////////////////////////////////////
-
+/*
 static struct android_pmem_platform_data mdp_pmem_pdata = {
 	.name		= "pmem",
 	.start		= MSM_PMEM_MDP_BASE,
@@ -1260,7 +1260,7 @@ static struct platform_device android_pmem_venc_device = {
 		.platform_data = &android_pmem_venc_pdata,
 	},
 };
-
+*/
 ///////////////////////////////////////////////////////////////////////
 // RAM-Console
 ///////////////////////////////////////////////////////////////////////
@@ -1380,10 +1380,10 @@ static struct platform_device *devices[] __initdata =
 	&rndis_device,
 #endif
 	&android_usb_device,
-	&android_pmem_mdp_device,
-	&android_pmem_adsp_device,
+//	&android_pmem_mdp_device,
+//	&android_pmem_adsp_device,
 #ifdef CONFIG_720P_CAMERA
-	&android_pmem_venc_device,
+//	&android_pmem_venc_device,
 #endif
 	&msm_kgsl_device,
 	&msm_device_i2c,
