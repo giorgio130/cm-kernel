@@ -369,6 +369,25 @@ static int lcdc_hw_init(struct mdp_lcdc_info *lcdc)
 	dma_cfg |= DMA_OUT_SEL_LCDC;
 	dma_cfg &= ~DMA_DST_BITS_MASK;
 
+	if(machine_is_htcleo()) {
+		dma_cfg = DMA_PACK_ALIGN_MSB |
+			DMA_PACK_PATTERN_RGB;
+
+		dma_cfg |= DMA_OUT_SEL_LCDC;
+		dma_cfg &= ~DMA_DST_BITS_MASK;
+	}
+	else {
+		dma_cfg |= (DMA_PACK_ALIGN_LSB |
+			  DMA_PACK_PATTERN_RGB |
+			  DMA_DITHER_EN);
+		dma_cfg |= DMA_OUT_SEL_LCDC;
+		dma_cfg &= ~DMA_DST_BITS_MASK;
+	}
+
+	/* enable the lcdc timing generation */
+	mdp_writel(lcdc->mdp, 1, MDP_LCDC_EN);
+	
+
 	if (fb_panel->fb_data->output_format == MSM_MDP_OUT_IF_FMT_RGB666)
 		dma_cfg |= DMA_DSTC0G_6BITS |
 			   DMA_DSTC1B_6BITS |
@@ -703,7 +722,13 @@ static int mdp_lcdc_probe(struct platform_device *pdev)
 	lcdc->fb_panel_data.suspend = lcdc_suspend;
 	lcdc->fb_panel_data.resume = lcdc_resume;
 	lcdc->fb_panel_data.wait_vsync = lcdc_wait_vsync;
+#if defined(CONFIG_MACH_HTCLEO)
+	// Temporarily disable vsync to prevent a scheduler bug, need
+	// to be looked into further.
+	lcdc->fb_panel_data.request_vsync = 0;
+#else
 	lcdc->fb_panel_data.request_vsync = lcdc_request_vsync;
+#endif
 	lcdc->fb_panel_data.clear_vsync = lcdc_clear_vsync;
 	lcdc->fb_panel_data.blank = lcdc_blank;
 	lcdc->fb_panel_data.unblank = lcdc_unblank;

@@ -137,6 +137,11 @@ config MSM_AMSS_VERSION
 	default 6225 if MSM_AMSS_VERSION_6225
 	default 6350 if MSM_AMSS_VERSION_6350
         default 3200 if MSM_AMSS_VERSION_3200
+	default 1550 if MSM_AMSS_VERSION_1550
+
+config MSM_AMSS_VERSION_WINCE
+        bool
+        default y if MSM_AMSS_VERSION_1550
 
 choice
 	prompt "AMSS modem firmware version"
@@ -161,6 +166,9 @@ choice
          
          config MSM_AMSS_VERSION_3200
  	        bool "3.2.00"
+
+        config MSM_AMSS_VERSION_1550
+                bool "1.5.50"
 endchoice
 
 menu "Qualcomm MSM Board Type"
@@ -346,6 +354,13 @@ config JESUS_PHONE
 	bool "Enable Jesus Phone mode (DANGEROUS)"
 	help
 	 Enable support for dangerous acpuclock frequencies/voltages.
+
+config MACH_HTCLEO
+	depends on ARCH_QSD8X50
+	default y
+	bool "HTC Leo"
+	help
+	  Select this to support the HTC Leo device
 
 config HTC_HEADSET
 	tristate "HTC 2 Wire detection driver"
@@ -753,5 +768,27 @@ config VIRTUAL_KPANIC_SRC
 	help
 	  Sets the partition to steal from to make the virtual one.
 
+
+config HTC_FB_CONSOLE
+	bool "Boot console for HTC phones (needs a font which has width <= 8)"
+	default n
+
+config HTC_FB_CONSOLE_DELAY
+	bool "Wait some time after each message is printed"
+	default n
+	depends on HTC_FB_CONSOLE
+
+config HTC_FB_CONSOLE_BOOT
+	bool "Use console only during boot"
+	default n
+	depends on HTC_FB_CONSOLE
+
+config VERY_EARLY_CONSOLE
+	bool "Support for very early consoles"
+	default n
+	help
+		Add support to initialize consoles very early. For this to have
+		effect, the driver must support this and the consoles should
+		be initialized in the board file as soon as possible.
 
 endif

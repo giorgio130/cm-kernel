@@ -247,6 +247,13 @@ static int msmfb_start_dma(struct msmfb_info *msmfb)
 	y = msmfb->update_info.top;
 	w = msmfb->update_info.eright - x;
 	h = msmfb->update_info.ebottom - y;
+#if defined(CONFIG_MACH_HTCLEO)
+	// For some reason we need to force a full-screen update to prevent
+	// the screen from mixing up (top +-100px missing, garbled data
+	// at the bottom +-100px). Maybe it has to do with the vsync we
+	// had to disable in mdp_lcdc?
+	x = 0; y = 0; w = msmfb->xres; h = msmfb->yres;
+#endif
 	yoffset = msmfb->yoffset;
 	msmfb->update_info.left = msmfb->xres + 1;
 	msmfb->update_info.top = msmfb->yres + 1;

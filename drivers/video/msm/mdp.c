@@ -28,6 +28,7 @@
 
 #include <mach/msm_iomap.h>
 #include <mach/msm_fb.h>
+#include <asm/mach-types.h>
 #include <linux/platform_device.h>
 
 #include "mdp_hw.h"
@@ -413,6 +414,18 @@ static void mdp_dma_to_mddi(void *priv, uint32_t addr, uint32_t stride,
 	uint32_t video_packet_parameter = 0;
 	uint16_t ld_param = 0; /* 0=PRIM, 1=SECD, 2=EXT */
 
+	if(machine_is_htcleo()) {
+		dma2_cfg = DMA_PACK_ALIGN_MSB |
+			DMA_PACK_PATTERN_RGB;
+		dma2_cfg |= mdp->dma_format;
+		dma2_cfg |= DMA_OUT_SEL_LCDC;
+		dma2_cfg |= DMA_IBUF_FORMAT_RGB565;
+		/* 655 16BPP */
+		dma2_cfg |= DMA_DSTC0G_6BITS | DMA_DSTC1B_5BITS | DMA_DSTC2R_5BITS;
+	}
+else {
+
+
 #if !defined(CONFIG_MSM_MDP30)
 	dma2_cfg = DMA_PACK_TIGHT |
 		DMA_PACK_ALIGN_LSB |
@@ -447,7 +460,7 @@ static void mdp_dma_to_mddi(void *priv, uint32_t addr, uint32_t stride,
 		video_packet_parameter = MDDI_VDO_PACKET_DESC_RGB666;
 	}
 
-
+}
 #if defined(CONFIG_MSM_MDP30) || defined(CONFIG_MSM_MDP302)
 	writel(height << 16 | width, mdp->base + 0x90004);
 	writel(addr, mdp->base + 0x90008);

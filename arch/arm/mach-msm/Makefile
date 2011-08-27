@@ -170,3 +170,7 @@ obj-$(CONFIG_MACH_MAHIMAHI) += board-mahimahi-smb329.o
 
 obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
 
+obj-$(CONFIG_MACH_HTCLEO) += board-htcleo.o  board-htcleo-panel.o 
+ 
+obj-$(CONFIG_HTC_FB_CONSOLE) += htc_fb_console.o
+
