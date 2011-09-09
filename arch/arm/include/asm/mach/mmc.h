@@ -15,7 +15,7 @@ struct embedded_sdio_data {
         int num_funcs;
 };
 
-struct mmc_platform_data {
+struct msm_mmc_platform_data {
 	unsigned int ocr_mask;			/* available voltages */
 	int built_in;				/* built-in device flag */
 	u32 (*translate_vdd)(struct device *, unsigned int);

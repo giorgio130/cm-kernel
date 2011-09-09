@@ -43,11 +43,14 @@
 #define MSM_CSR_PHYS          0xAC100000
 #define MSM_CSR_SIZE          SZ_4K
 
+#define MSM_GPT_PHYS          MSM_CSR_PHYS
+#define MSM_GPT_BASE          MSM_CSR_BASE
+#define MSM_GPT_SIZE          SZ_4K
+
 #define MSM_TMR_PHYS          MSM_CSR_PHYS
 #define MSM_TMR_BASE          MSM_CSR_BASE
 #define MSM_TMR_SIZE          SZ_4K
 
-#define MSM_GPT_BASE          MSM_TMR_BASE
 #define MSM_DGT_BASE          (MSM_TMR_BASE + 0x10)
 
 #define MSM_DMOV_BASE         IOMEM(0xF8002000)
@@ -61,6 +64,14 @@
 #define MSM_GPIO2_BASE        IOMEM(0xF8004000)
 #define MSM_GPIO2_PHYS        0xA9100000
 #define MSM_GPIO2_SIZE        SZ_4K
+
+#define MSM_GPIOCFG1_BASE     IOMEM(0xF9004000)
+#define MSM_GPIOCFG1_PHYS     0xA8E00000
+#define MSM_GPIOCFG1_SIZE     SZ_4K
+
+#define MSM_GPIOCFG2_BASE     IOMEM(0xF9005000)
+#define MSM_GPIOCFG2_PHYS     0xA8F00000
+#define MSM_GPIOCFG2_SIZE     SZ_4K
 
 #define MSM_CLK_CTL_BASE      IOMEM(0xF8005000)
 #define MSM_CLK_CTL_PHYS      0xA8600000
@@ -83,6 +94,18 @@
 #else
 #define MSM_8K_SMI_BASE 0x00000000
 #endif
+
+#define MSM_TS_BASE           IOMEM(0xF9006000)
+#define MSM_TS_PHYS           0xAA300000
+#define MSM_TS_SIZE           SZ_4K
+
+#define MSM_SSBI_BASE         IOMEM(0xF9008000)
+#define MSM_SSBI_PHYS         0xA8100000
+#define MSM_SSBI_SIZE         SZ_4K
+
+#define MSM_TSSC_BASE         IOMEM(0xF9009000)
+#define MSM_TSSC_PHYS         0xAA300000
+#define MSM_TSSC_SIZE         SZ_4K
 
 #define MSM_SHARED_RAM_BASE   IOMEM(0xF8100000)
 #define MSM_SHARED_RAM_PHYS   (MSM_8K_SMI_BASE + 0x00100000)
@@ -152,6 +175,7 @@
 #define MSM_SDC1_PHYS          0xA0300000
 #define MSM_SDC1_SIZE          SZ_4K
 
+#define MSM_SDC2_BASE          IOMEM(0xF800C000)
 #define MSM_SDC2_PHYS          0xA0400000
 #define MSM_SDC2_SIZE          SZ_4K
 
@@ -166,5 +190,13 @@
 
 #define MSM_SPI_PHYS          0xA1200000
 #define MSM_SPI_SIZE          SZ_4K
+
+// Originally this does not need to be defined,
+// but is required to make early_ramconsole work.
+// These values must match the values used in
+// the defconfig.
+#define MSM_RAM_CONSOLE_BASE	IOMEM(0xF9100000)
+#define MSM_RAM_CONSOLE_PHYS	0x2FFC0000
+#define MSM_RAM_CONSOLE_SIZE	0x00040000
 
 #endif

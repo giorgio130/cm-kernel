@@ -247,6 +247,11 @@ static int msmfb_start_dma(struct msmfb_info *msmfb)
 	y = msmfb->update_info.top;
 	w = msmfb->update_info.eright - x;
 	h = msmfb->update_info.ebottom - y;
+	
+#if defined(CONFIG_FRAMEBUFFER_CONSOLE)
+	x = 0; y = 0; w = msmfb->xres; h = msmfb->yres;
+#endif
+
 	yoffset = msmfb->yoffset;
 	msmfb->update_info.left = msmfb->xres + 1;
 	msmfb->update_info.top = msmfb->yres + 1;
@@ -727,22 +732,28 @@ int msmfb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
 static void msmfb_fillrect(struct fb_info *p, const struct fb_fillrect *rect)
 {
 	cfb_fillrect(p, rect);
+#if !defined(CONFIG_FRAMEBUFFER_CONSOLE)	
 	msmfb_update(p, rect->dx, rect->dy, rect->dx + rect->width,
 		     rect->dy + rect->height);
+#endif
 }
 
 static void msmfb_copyarea(struct fb_info *p, const struct fb_copyarea *area)
 {
 	cfb_copyarea(p, area);
+#if !defined(CONFIG_FRAMEBUFFER_CONSOLE)	
 	msmfb_update(p, area->dx, area->dy, area->dx + area->width,
 		     area->dy + area->height);
+#endif
 }
 
 static void msmfb_imageblit(struct fb_info *p, const struct fb_image *image)
 {
 	cfb_imageblit(p, image);
+#if !defined(CONFIG_FRAMEBUFFER_CONSOLE)	
 	msmfb_update(p, image->dx, image->dy, image->dx + image->width,
 		     image->dy + image->height);
+#endif
 }
 
 
@@ -1188,15 +1199,7 @@ static int msmfb_probe(struct platform_device *pdev)
 #endif
 
 #ifdef CONFIG_FB_MSM_LOGO
-	if (!load_565rle_image(INIT_IMAGE_FILE)) {
-		/* Flip buffer */
-		msmfb->update_info.left = 0;
-		msmfb->update_info.top = 0;
-		msmfb->update_info.eright = info->var.xres;
-		msmfb->update_info.ebottom = info->var.yres;
-		msmfb_pan_update(info, 0, 0, fb->var.xres,
-				 fb->var.yres, 0, 1);
-	}
+	if (!load_565rle_image(INIT_IMAGE_FILE));
 #endif
 	/* Jay, 29/12/08' */
 	display_notifier(display_notifier_callback, NOTIFY_MSM_FB);

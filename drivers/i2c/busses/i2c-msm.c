@@ -18,6 +18,7 @@
 #include <linux/gpio.h>
 #include <linux/init.h>
 #include <linux/i2c.h>
+#include <linux/i2c-msm.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
@@ -79,6 +80,9 @@ struct msm_i2c_dev {
 	struct wake_lock    wakelock;
 	bool                is_suspended;
 	struct mutex	    mlock;
+	int                 clk_drv_str;
+	int                 dat_drv_str;
+	int                 skip_recover;
 };
 
 #if DEBUG
@@ -273,7 +277,7 @@ msm_i2c_recover_bus_busy(struct msm_i2c_dev *dev)
 	if (!(status & (I2C_STATUS_BUS_ACTIVE | I2C_STATUS_WR_BUFFER_FULL)))
 		return 0;
 
-	msm_set_i2c_mux(true, &gpio_clk, &gpio_dat);
+	msm_set_i2c_mux(true, &gpio_clk, &gpio_dat, 0, 0);
 
 	if (status & I2C_STATUS_RD_BUFFER_FULL) {
 		dev_warn(dev->dev, "Read buffer full, status %x, intf %x\n",
@@ -311,7 +315,8 @@ msm_i2c_recover_bus_busy(struct msm_i2c_dev *dev)
 		gpio_direction_input(gpio_dat);
 		udelay(5);
 	}
-	msm_set_i2c_mux(false, NULL, NULL);
+	msm_set_i2c_mux(false, NULL, NULL,
+		dev->clk_drv_str, dev->dat_drv_str);
 	udelay(10);
 
 	status = readl(dev->base + I2C_STATUS);
@@ -434,6 +439,7 @@ msm_i2c_probe(struct platform_device *pdev)
 {
 	struct msm_i2c_dev	*dev;
 	struct resource		*mem, *irq, *ioarea;
+	struct msm_i2c_device_platform_data *pdata = pdev->dev.platform_data;
 	int ret;
 	int fs_div;
 	int hs_div;
@@ -489,7 +495,24 @@ msm_i2c_probe(struct platform_device *pdev)
 	wake_lock_init(&dev->wakelock, WAKE_LOCK_SUSPEND, "i2c");
 	platform_set_drvdata(pdev, dev);
 
-	msm_set_i2c_mux(false, NULL, NULL);
+	if (pdata) {
+		dev->clk_drv_str = pdata->clock_strength;
+		dev->dat_drv_str = pdata->data_strength;
+		if (pdata->i2c_clock < 100000 || pdata->i2c_clock > 400000)
+			target_clk = 100000;
+		else
+			target_clk = pdata->i2c_clock;
+		dev->skip_recover = 0;
+	} else {
+		dev->clk_drv_str = 0;
+		dev->dat_drv_str = 0;
+		target_clk = 100000;
+		dev->skip_recover = 1;
+	}
+
+	if (!dev->skip_recover)
+		msm_set_i2c_mux(false, NULL, NULL,
+			dev->clk_drv_str, dev->dat_drv_str);
 
 	clk_enable(clk);
 
@@ -497,7 +520,6 @@ msm_i2c_probe(struct platform_device *pdev)
 	/* I2C_FS_CLK = I2C_CLK/(2*(FS_DIVIDER_VALUE+3) */
 	/* FS_DIVIDER_VALUE = ((I2C_CLK / I2C_FS_CLK) / 2) - 3 */
 	i2c_clk = 19200000; /* input clock */
-	target_clk = 100000;
 	/* target_clk = 200000; */
 	fs_div = ((i2c_clk / target_clk) / 2) - 3;
 	hs_div = 3;

@@ -747,7 +747,6 @@ struct spi_board_info {
 	/* slower signaling on noisy or low voltage boards */
 	u32		max_speed_hz;
 
-
 	/* bus_num is board specific and matches the bus_num of some
 	 * spi_master that will probably be registered later.
 	 *

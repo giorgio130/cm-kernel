@@ -467,6 +467,7 @@ void msm_gpio_exit_sleep(void)
 	}
 }
 
+
 void config_gpio_table(uint32_t *table, int len)
 {
 	int n;

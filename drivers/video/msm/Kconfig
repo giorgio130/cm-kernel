@@ -55,6 +55,12 @@ config MSM_KGSL_MMU
 	  If enabled, the GPU driver will allocate memory from vmalloc
 	  and enable the use of GPU MMU, instead of using pmem.
 
+config FB_MSM_LOGO
+	bool "MSM Frame Buffer Logo"
+	default n
+	---help---
+	Show /initlogo.rle during boot.
+
 config MSM_HDMI
 	bool "Support for HDMI in QCT platform"
 	depends on MSM_MDP31
